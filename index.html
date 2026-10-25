@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="bn">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>পিডিএফ স্টুডিও প্রো | PDF Studio Pro</title>
+    <meta name="description" content="সম্পূর্ণ অফলাইনে পিডিএফে বাংলা, ইংরেজি ও আরবি পৃষ্ঠা নম্বর যোগ এবং ফটো/স্ট্যাম্প বসানোর স্মার্ট মাল্টিফাংশনাল এডিটর।" />
+    <meta property="og:title" content="পিডিএফ স্টুডিও প্রো | PDF Studio Pro" />
+    <meta property="og:description" content="সম্পূর্ণ অফলাইনে পিডিএফে বাংলা, ইংরেজি ও আরবি পৃষ্ঠা নম্বর যোগ এবং ফটো/স্ট্যাম্প বসানোর স্মার্ট মাল্টিফাংশনাল এডিটর।" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      try {
+        const saved = localStorage.getItem('pdf_studio_theme');
+        if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } catch (_) {}
+    </script>
+  </head>
+  <body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

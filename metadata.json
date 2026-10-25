@@ -1,0 +1,6 @@
+{
+  "name": "পিডিএফ স্টুডিও প্রো | PDF Studio Pro",
+  "description": "সম্পূর্ণ অফলাইনে পিডিএফে বাংলা, ইংরেজি ও আরবি পৃষ্ঠা নম্বর যোগ এবং ফটো/স্ট্যাম্প বসানোর স্মার্ট মাল্টিফাংশনাল এডিটর।",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
