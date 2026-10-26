@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FontAwesomeIcon } from './FontAwesomeIcon';
 import {
   faHashtag,
@@ -7,11 +7,106 @@ import {
   faEyeSlash,
   faCheck,
   faRotate,
-  faLayerGroup,
+  faChevronDown,
+  faMagnet,
 } from '@fortawesome/free-solid-svg-icons';
 import { PageNumberConfig, NumeralSystem, PageNumberFormat, PageNumberPosition, Language } from '../types';
 import { translations } from '../translations';
 import { parsePageRangeString, formatNumeral } from '../utils/numbering';
+
+interface DropdownItem<T> {
+  value: T;
+  label: string;
+  sublabel?: string;
+}
+
+interface InAppDropdownProps<T> {
+  value: T;
+  options: DropdownItem<T>[];
+  onChange: (val: T) => void;
+  label: string;
+}
+
+function InAppDropdown<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+}: InAppDropdownProps<T>) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const selectedOption = options.find((o) => o.value === value) || options[0];
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+        {label}
+      </label>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full text-xs font-medium px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2 shadow-2xs hover:border-indigo-400 dark:hover:border-indigo-600 transition-colors cursor-pointer text-left"
+      >
+        <span className="truncate">{selectedOption?.label}</span>
+        <FontAwesomeIcon
+          icon={faChevronDown}
+          className={`text-[10px] text-slate-400 transition-transform ${isOpen ? 'rotate-180 text-indigo-500' : ''}`}
+        />
+      </button>
+
+      {/* In-app CSS dropdown list placed directly in UI, NO native OS popup! */}
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl py-1 max-h-56 overflow-y-auto">
+          {options.map((opt) => {
+            const isSelected = opt.value === value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full px-3 py-2 text-xs flex items-center justify-between gap-2 text-left transition-colors cursor-pointer ${
+                  isSelected
+                    ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 font-semibold'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="truncate">
+                  <div>{opt.label}</div>
+                  {opt.sublabel && (
+                    <div className="text-[10px] text-slate-400 dark:text-slate-500 font-light truncate">
+                      {opt.sublabel}
+                    </div>
+                  )}
+                </div>
+                {isSelected && (
+                  <FontAwesomeIcon icon={faCheck} className="text-[10px] text-indigo-600 dark:text-indigo-400 shrink-0" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface PageNumberManagerProps {
   config: PageNumberConfig;
@@ -70,21 +165,14 @@ export const PageNumberManager: React.FC<PageNumberManagerProps> = ({
   return (
     <div className="space-y-6">
       {/* Enable Toggle Card */}
-      <div className="flex items-center justify-between p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800">
+      <div className="flex items-center justify-between p-3.5 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+          <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xs shadow-xs">
             <FontAwesomeIcon icon={faHashtag} />
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-              {t.enableNumbers}
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-light">
-              {lang === 'bn'
-                ? 'পিডিএফের পাতায় স্বয়ংক্রিয় পৃষ্ঠা ক্রমিক যোগ করুন'
-                : 'Automatically stamp page sequences'}
-            </p>
-          </div>
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+            {t.enableNumbers}
+          </h3>
         </div>
 
         <label className="relative inline-flex items-center cursor-pointer">
@@ -95,281 +183,202 @@ export const PageNumberManager: React.FC<PageNumberManagerProps> = ({
             className="sr-only peer"
             aria-label={t.enableNumbers}
           />
-          <div className="w-11 h-6 bg-slate-300 dark:bg-slate-700 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+          <div className="w-10 h-5.5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600"></div>
         </label>
       </div>
 
       {config.enabled && (
         <div className="space-y-5">
-          {/* Numeral System (বাংলা, ইংরেজি, আরবি) */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
-              {t.numeralSystem}
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { id: 'bengali' as NumeralSystem, name: t.numeralBengali, sample: '১, ২, ৩' },
-                { id: 'english' as NumeralSystem, name: t.numeralEnglish, sample: '1, 2, 3' },
-                { id: 'arabic' as NumeralSystem, name: t.numeralArabic, sample: '١, ٢, ٣' },
-              ].map((sys) => {
-                const isSelected = config.numeralSystem === sys.id;
-                return (
-                  <button
-                    key={sys.id}
-                    type="button"
-                    onClick={() => handleNumeralSystemChange(sys.id)}
-                    className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                      isSelected
-                        ? 'border-indigo-600 bg-indigo-50/90 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-medium shadow-xs'
-                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    <div className="text-xs font-semibold">{sys.name}</div>
-                    <div className="text-xs opacity-80 mt-0.5 tracking-wider">{sys.sample}</div>
-                  </button>
-                );
-              })}
-            </div>
+          {/* 3 Compact In-App CSS Dropdowns in One Row: Language, Format, Position */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
+            {/* 1. Numeral System (সংখ্যার ধরণ / ভাষা) */}
+            <InAppDropdown<NumeralSystem>
+              label={t.numeralSystem}
+              value={config.numeralSystem}
+              onChange={(val) => handleNumeralSystemChange(val)}
+              options={[
+                { value: 'bengali', label: 'বাংলা (১, ২, ৩)' },
+                { value: 'english', label: 'ইংরেজি (1, 2, 3)' },
+                { value: 'arabic', label: 'আরবি (١, ٢, ٣)' },
+              ]}
+            />
+
+            {/* 2. Format Selection (নম্বরের ফরম্যাট) */}
+            <InAppDropdown<PageNumberFormat>
+              label={t.numberFormat}
+              value={config.format}
+              onChange={(val) => {
+                if (val === 'custom_text') {
+                  onChange({
+                    ...config,
+                    format: val,
+                    prefixText: config.prefixText ?? (lang === 'bn' ? 'নাশিদের ' : "Nashid's "),
+                    suffixText: config.suffixText ?? (lang === 'bn' ? ' ডায়েরি' : ' Diary'),
+                  });
+                } else {
+                  handleFormatChange(val);
+                }
+              }}
+              options={[
+                { value: 'number_only', label: `${t.formatOnly} (১)` },
+                {
+                  value: 'page_of_total',
+                  label: lang === 'bn' ? `পৃষ্ঠা ১ / ${totalPages}` : `Page 1 of ${totalPages}`,
+                },
+                { value: 'number_of_total', label: `১ / ${totalPages}` },
+                { value: 'hyphenated', label: '- ১ -' },
+                { value: 'page_prefix', label: `${t.formatPagePrefix} (পৃষ্ঠা ১)` },
+                { value: 'custom_text', label: t.formatCustom },
+              ]}
+            />
+
+            {/* 3. Page Number Position (পৃষ্ঠা নম্বরের অবস্থান) */}
+            <InAppDropdown<PageNumberPosition>
+              label={t.numberPosition}
+              value={config.position}
+              onChange={(val) => handlePositionChange(val)}
+              options={[
+                { value: 'bottom-center', label: t.posBottomCenter },
+                { value: 'bottom-right', label: t.posBottomRight },
+                { value: 'bottom-left', label: t.posBottomLeft },
+                { value: 'top-center', label: t.posTopCenter },
+                { value: 'top-right', label: t.posTopRight },
+                { value: 'top-left', label: t.posTopLeft },
+                ...(config.position === 'custom'
+                  ? [{ value: 'custom' as PageNumberPosition, label: t.posCustom }]
+                  : []),
+              ]}
+            />
           </div>
 
-          {/* Format Selection */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
-              {t.numberFormat}
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {[
-                {
-                  id: 'number_only' as PageNumberFormat,
-                  label: t.formatOnly,
-                  preview: formatNumeral(1, config.numeralSystem),
-                },
-                {
-                  id: 'page_of_total' as PageNumberFormat,
-                  label: t.formatPageOfTotal,
-                  preview:
-                    config.numeralSystem === 'arabic'
-                      ? `صفحة ${formatNumeral(1, 'arabic')} من ${formatNumeral(totalPages, 'arabic')}`
-                      : lang === 'bn' || config.numeralSystem === 'bengali'
-                      ? `পৃষ্ঠা ${formatNumeral(1, 'bengali')} / ${formatNumeral(totalPages, 'bengali')}`
-                      : `Page ${formatNumeral(1, 'english')} of ${formatNumeral(totalPages, 'english')}`,
-                },
-                {
-                  id: 'number_of_total' as PageNumberFormat,
-                  label: t.formatNumberOfTotal,
-                  preview: `${formatNumeral(1, config.numeralSystem)} / ${formatNumeral(totalPages, config.numeralSystem)}`,
-                },
-                {
-                  id: 'hyphenated' as PageNumberFormat,
-                  label: t.formatHyphen,
-                  preview: `- ${formatNumeral(1, config.numeralSystem)} -`,
-                },
-                {
-                  id: 'page_prefix' as PageNumberFormat,
-                  label: t.formatPagePrefix,
-                  preview:
-                    config.numeralSystem === 'arabic'
-                      ? `صفحة ${formatNumeral(1, 'arabic')}`
-                      : lang === 'bn' || config.numeralSystem === 'bengali'
-                      ? `পৃষ্ঠা ${formatNumeral(1, 'bengali')}`
-                      : `Page ${formatNumeral(1, 'english')}`,
-                },
-                {
-                  id: 'custom_text' as PageNumberFormat,
-                  label: t.formatCustom,
-                  preview: `${config.prefixText ?? (lang === 'bn' ? 'নাশিদের ' : "Nashid's ")}${formatNumeral(1, config.numeralSystem)}${config.suffixText ?? (lang === 'bn' ? ' ডায়েরি' : ' Diary')}`,
-                },
-              ].map((fmt) => {
-                const isSelected = config.format === fmt.id;
-                return (
-                  <button
-                    key={fmt.id}
-                    type="button"
-                    onClick={() => {
-                      if (fmt.id === 'custom_text') {
-                        onChange({
-                          ...config,
-                          format: fmt.id,
-                          prefixText: config.prefixText ?? (lang === 'bn' ? 'নাশিদের ' : "Nashid's "),
-                          suffixText: config.suffixText ?? (lang === 'bn' ? ' ডায়েরি' : ' Diary'),
-                        });
-                      } else {
-                        handleFormatChange(fmt.id);
-                      }
-                    }}
-                    className={`p-2 rounded-xl border text-left transition-all cursor-pointer ${
-                      isSelected
-                        ? 'border-indigo-600 bg-indigo-50/80 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-medium'
-                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    <div className="text-xs font-semibold truncate">{fmt.label}</div>
-                    <div className="text-[11px] opacity-75 mt-0.5 truncate">{fmt.preview}</div>
-                  </button>
-                );
-              })}
-            </div>
+          {/* Custom Prefix & Suffix Controls (only shown when custom_text is active) */}
+          {config.format === 'custom_text' && (
+            <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 space-y-3">
+              <div className="text-xs font-semibold text-indigo-900 dark:text-indigo-200 flex items-center justify-between">
+                <span>{t.formatCustom}</span>
+                <span className="text-[11px] font-normal text-indigo-600 dark:text-indigo-400">
+                  {lang === 'bn' ? 'বই বা ডকুমেন্টের নাম যোগ করুন' : 'Add book title or prefix'}
+                </span>
+              </div>
 
-            {/* Custom Prefix & Suffix Controls */}
-            {config.format === 'custom_text' && (
-              <div className="mt-3 p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 space-y-3">
-                <div className="text-xs font-semibold text-indigo-900 dark:text-indigo-200 flex items-center justify-between">
-                  <span>{t.formatCustom}</span>
-                  <span className="text-[11px] font-normal text-indigo-600 dark:text-indigo-400">
-                    {lang === 'bn' ? 'বই বা ডকুমেন্টের নাম যোগ করুন' : 'Add book title or prefix'}
-                  </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {t.prefixLabel}
+                  </label>
+                  <input
+                    type="text"
+                    value={config.prefixText ?? ''}
+                    onChange={(e) => onChange({ ...config, prefixText: e.target.value })}
+                    placeholder={t.prefixPlaceholder}
+                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      {t.prefixLabel}
-                    </label>
-                    <input
-                      type="text"
-                      value={config.prefixText ?? ''}
-                      onChange={(e) => onChange({ ...config, prefixText: e.target.value })}
-                      placeholder={t.prefixPlaceholder}
-                      className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      {t.suffixLabel}
-                    </label>
-                    <input
-                      type="text"
-                      value={config.suffixText ?? ''}
-                      onChange={(e) => onChange({ ...config, suffixText: e.target.value })}
-                      placeholder={t.suffixPlaceholder}
-                      className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Quick Preset Example Chips */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                    {lang === 'bn' ? 'দ্রুত প্রিসেট:' : 'Quick Presets:'}
-                  </span>
-                  {[
-                    { pre: 'নাশিদের ', suf: ' ডায়েরি', label: 'নাশিদের [১] ডায়েরি' },
-                    { pre: 'অধ্যায় ', suf: '', label: 'অধ্যায় [১]' },
-                    { pre: 'বইয়ের নাম ', suf: ' • পৃষ্ঠা', label: 'বইয়ের নাম [১] • পৃষ্ঠা' },
-                  ].map((chip, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() =>
-                        onChange({
-                          ...config,
-                          prefixText: chip.pre,
-                          suffixText: chip.suf,
-                        })
-                      }
-                      className="text-[10px] px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 cursor-pointer transition-colors"
-                    >
-                      {chip.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Live Output Banner */}
-                <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {t.customPreviewLabel}
-                  </span>
-                  <span className="font-semibold text-indigo-600 dark:text-indigo-400 font-['Hind_Siliguri'] text-sm">
-                    {`${config.prefixText ?? ''}${formatNumeral(1, config.numeralSystem)}${config.suffixText ?? ''}`}
-                  </span>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {t.suffixLabel}
+                  </label>
+                  <input
+                    type="text"
+                    value={config.suffixText ?? ''}
+                    onChange={(e) => onChange({ ...config, suffixText: e.target.value })}
+                    placeholder={t.suffixPlaceholder}
+                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  />
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Position Selector (6 visual boxes) */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
-              {t.numberPosition}
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {positions.map((pos) => {
-                const isSelected = config.position === pos.id;
-                return (
+              {/* Quick Preset Example Chips */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                  {lang === 'bn' ? 'দ্রুত প্রিসেট:' : 'Quick Presets:'}
+                </span>
+                {[
+                  { pre: 'নাশিদের ', suf: ' ডায়েরি', label: 'নাশিদের [১] ডায়েরি' },
+                  { pre: 'অধ্যায় ', suf: '', label: 'অধ্যায় [১]' },
+                  { pre: 'বইয়ের নাম ', suf: ' • পৃষ্ঠা', label: 'বইয়ের নাম [১] • পৃষ্ঠা' },
+                ].map((chip, idx) => (
                   <button
-                    key={pos.id}
+                    key={idx}
                     type="button"
-                    onClick={() => handlePositionChange(pos.id)}
-                    className={`h-16 rounded-xl border p-2 flex flex-col justify-between transition-all cursor-pointer relative ${
-                      isSelected
-                        ? 'border-indigo-600 bg-indigo-50/70 dark:bg-indigo-950/50 ring-1 ring-indigo-500'
-                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 bg-white dark:bg-slate-900/50'
-                    }`}
+                    onClick={() =>
+                      onChange({
+                        ...config,
+                        prefixText: chip.pre,
+                        suffixText: chip.suf,
+                      })
+                    }
+                    className="text-[10px] px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 cursor-pointer transition-colors"
                   >
-                    {/* Mini simulated document layout */}
-                    <div className={`w-full h-7 border border-dashed rounded flex p-1 ${pos.iconPos} ${
-                      isSelected ? 'border-indigo-400 bg-indigo-100/50 dark:bg-indigo-900/40' : 'border-slate-300 dark:border-slate-700'
-                    }`}>
-                      <div className="w-2 h-2 rounded-full bg-indigo-600" />
-                    </div>
-                    <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 truncate w-full text-center">
-                      {pos.label}
-                    </span>
+                    {chip.label}
                   </button>
-                );
-              })}
-            </div>
-          </div>
+                ))}
+              </div>
 
-          {/* Typography & Color controls */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-4">
+              {/* Live Output Banner */}
+              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {t.customPreviewLabel}
+                </span>
+                <span className="font-semibold text-indigo-600 dark:text-indigo-400 font-['Hind_Siliguri'] text-sm">
+                  {`${config.prefixText ?? ''}${formatNumeral(1, config.numeralSystem)}${config.suffixText ?? ''}`}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Typography, Rotation & Color */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-3.5">
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
               <FontAwesomeIcon icon={faSliders} className="text-indigo-500" />
               <span>{lang === 'bn' ? 'ফন্ট ও স্টাইলিং' : 'Font & Appearance'}</span>
             </div>
 
-            {/* Font Size */}
-            <div>
-              <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400 mb-1">
-                <span>{t.fontSize}</span>
-                <span className="font-mono">{config.fontSize} pt</span>
+            {/* Sliders */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Font Size */}
+              <div>
+                <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400 mb-1">
+                  <span>{t.fontSize}</span>
+                  <span className="font-mono font-medium">{config.fontSize} pt</span>
+                </div>
+                <input
+                  type="range"
+                  min="10"
+                  max="36"
+                  step="1"
+                  value={config.fontSize}
+                  onChange={(e) => onChange({ ...config, fontSize: parseInt(e.target.value, 10) })}
+                  className="w-full accent-indigo-600 cursor-pointer"
+                  aria-label={t.fontSize}
+                />
               </div>
-              <input
-                type="range"
-                min="10"
-                max="36"
-                step="1"
-                value={config.fontSize}
-                onChange={(e) => onChange({ ...config, fontSize: parseInt(e.target.value, 10) })}
-                className="w-full accent-indigo-600 cursor-pointer"
-                aria-label={t.fontSize}
-              />
-            </div>
 
-            {/* Opacity */}
-            <div>
-              <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400 mb-1">
-                <span>{t.fontOpacity}</span>
-                <span className="font-mono">{Math.round(config.opacity * 100)}%</span>
+              {/* Opacity */}
+              <div>
+                <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400 mb-1">
+                  <span>{t.fontOpacity}</span>
+                  <span className="font-mono font-medium">{Math.round(config.opacity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.2"
+                  max="1.0"
+                  step="0.05"
+                  value={config.opacity}
+                  onChange={(e) => onChange({ ...config, opacity: parseFloat(e.target.value) })}
+                  className="w-full accent-indigo-600 cursor-pointer"
+                  aria-label={t.fontOpacity}
+                />
               </div>
-              <input
-                type="range"
-                min="0.2"
-                max="1.0"
-                step="0.05"
-                value={config.opacity}
-                onChange={(e) => onChange({ ...config, opacity: parseFloat(e.target.value) })}
-                className="w-full accent-indigo-600 cursor-pointer"
-                aria-label={t.fontOpacity}
-              />
             </div>
 
             {/* Margin from edge */}
             <div>
               <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400 mb-1">
                 <span>{t.marginOffset}</span>
-                <span className="font-mono">{config.margin} pt</span>
+                <span className="font-mono font-medium">{config.margin} pt</span>
               </div>
               <input
                 type="range"
@@ -383,9 +392,80 @@ export const PageNumberManager: React.FC<PageNumberManagerProps> = ({
               />
             </div>
 
+            {/* Rotation Slider with Magnet Snapping at 0°, 90°, 180°, 270°, 360° */}
+            <div>
+              <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-1.5">
+                <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <FontAwesomeIcon icon={faRotate} className="text-indigo-500 text-[11px]" />
+                  <span>{t.numberRotation}</span>
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 font-mono font-bold text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200 dark:border-indigo-800 text-xs">
+                    {config.rotation || 0}°
+                    {[0, 90, 180, 270].includes(config.rotation || 0) && (
+                      <FontAwesomeIcon icon={faMagnet} className="text-[10px] text-indigo-500" />
+                    )}
+                  </span>
+                  {(config.rotation || 0) !== 0 && (
+                    <button
+                      type="button"
+                      onClick={() => onChange({ ...config, rotation: 0 })}
+                      className="text-[10px] text-slate-400 hover:text-rose-500 cursor-pointer"
+                      title="Reset to 0°"
+                    >
+                      {lang === 'bn' ? 'রিসেট (০°)' : 'Reset (0°)'}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="360"
+                step="1"
+                value={config.rotation || 0}
+                onChange={(e) => {
+                  const raw = parseInt(e.target.value, 10);
+                  const snapPoints = [0, 90, 180, 270, 360];
+                  let snapped = raw;
+                  for (const pt of snapPoints) {
+                    if (Math.abs(raw - pt) <= 5) {
+                      snapped = pt % 360;
+                      break;
+                    }
+                  }
+                  onChange({ ...config, rotation: snapped });
+                }}
+                className="w-full accent-indigo-600 cursor-pointer"
+                aria-label={t.numberRotation}
+              />
+              <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-slate-500 mt-1 px-1">
+                {[0, 90, 180, 270, 360].map((deg) => {
+                  const targetVal = deg % 360;
+                  const isCurrent = (config.rotation || 0) === targetVal;
+                  return (
+                    <button
+                      key={deg}
+                      type="button"
+                      onClick={() => onChange({ ...config, rotation: targetVal })}
+                      className={`hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer font-mono inline-flex items-center gap-0.5 px-1 py-0.5 rounded transition-colors ${
+                        isCurrent
+                          ? 'font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60'
+                          : ''
+                      }`}
+                      title={`${deg}°`}
+                    >
+                      <span>{deg}°</span>
+                      <FontAwesomeIcon icon={faMagnet} className="text-[8px] opacity-60" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Color swatches */}
             <div>
-              <div className="text-xs text-slate-600 dark:text-slate-400 mb-2 flex items-center justify-between">
+              <div className="text-xs text-slate-600 dark:text-slate-400 mb-1.5 flex items-center justify-between">
                 <span>{t.fontColor}</span>
                 <span className="font-mono text-[11px]">{config.fontColor}</span>
               </div>
@@ -416,78 +496,11 @@ export const PageNumberManager: React.FC<PageNumberManagerProps> = ({
             </div>
           </div>
 
-          {/* Rotation & Layering Controls (রুট ও স্ট্যাম্পের উপরে রাখার অপশন) */}
-          <div className="p-4 rounded-2xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-900/40 space-y-3.5">
-            {/* 1. Rotation (রুট / ঘোরানো) */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <FontAwesomeIcon icon={faRotate} className="text-indigo-500 text-[11px]" />
-                  <span>{t.numberRotation}</span>
-                </label>
-                <span className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400 font-bold">
-                  {config.rotation || 0}°
-                </span>
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                {([0, 90, 180, 270] as const).map((deg) => (
-                  <button
-                    key={deg}
-                    type="button"
-                    onClick={() => onChange({ ...config, rotation: deg })}
-                    className={`py-1.5 px-2 rounded-xl text-xs font-semibold border text-center transition-all cursor-pointer ${
-                      (config.rotation || 0) === deg
-                        ? 'border-indigo-600 bg-indigo-600 text-white shadow-xs'
-                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900'
-                    }`}
-                  >
-                    {deg}°
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 2. Layering (স্ট্যাম্পের উপরে রাখা যাতে ঢাকা না পড়ে) */}
-            <div className="pt-2 border-t border-indigo-100 dark:border-indigo-900/60">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mb-1.5">
-                <FontAwesomeIcon icon={faLayerGroup} className="text-indigo-500 text-[11px]" />
-                <span>{t.numberLayer}</span>
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => onChange({ ...config, layer: 'above_stamps' })}
-                  className={`py-2 px-2.5 rounded-xl text-xs font-semibold border text-center transition-all cursor-pointer ${
-                    (config.layer || 'above_stamps') === 'above_stamps'
-                      ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 shadow-xs'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900'
-                  }`}
-                >
-                  <div className="leading-snug">{t.layerAboveStamps}</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onChange({ ...config, layer: 'below_stamps' })}
-                  className={`py-2 px-2.5 rounded-xl text-xs font-semibold border text-center transition-all cursor-pointer ${
-                    config.layer === 'below_stamps'
-                      ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 shadow-xs'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900'
-                  }`}
-                >
-                  <div className="leading-snug">{t.layerBelowStamps}</div>
-                </button>
-              </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-light mt-1.5">
-                {t.layerHelp}
-              </p>
-            </div>
-          </div>
-
           {/* Exclusions Section */}
-          <div className="p-4 rounded-2xl bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 space-y-3.5">
+          <div className="p-3.5 rounded-2xl bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 space-y-3">
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-slate-200">
               <FontAwesomeIcon icon={faEyeSlash} className="text-amber-500" />
-              <span>{lang === 'bn' ? 'পৃষ্ঠা বাদ দেওয়ার ও ফিল্টারিং সেটিংস' : 'Page Exclusions & Filter'}</span>
+              <span>{lang === 'bn' ? 'পৃষ্ঠা ফিল্টার ও বাদ' : 'Page Filter & Exclusions'}</span>
             </div>
 
             {/* Even / Odd Page Filter Mode */}
@@ -505,7 +518,7 @@ export const PageNumberManager: React.FC<PageNumberManagerProps> = ({
                     key={item.id}
                     type="button"
                     onClick={() => onChange({ ...config, pageFilterMode: item.id })}
-                    className={`px-2 py-2 rounded-xl text-xs font-medium border text-center transition-all cursor-pointer ${
+                    className={`px-2 py-1.5 rounded-xl text-xs font-medium border text-center transition-all cursor-pointer ${
                       (config.pageFilterMode || 'all') === item.id
                         ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 shadow-xs'
                         : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 text-slate-600 dark:text-slate-400'
@@ -540,11 +553,8 @@ export const PageNumberManager: React.FC<PageNumberManagerProps> = ({
                 value={excludeInput}
                 onChange={(e) => handleExcludeInputChange(e.target.value)}
                 placeholder={t.excludePlaceholder}
-                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                className="w-full text-xs px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
               />
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-light">
-                {t.excludeHelp}
-              </p>
             </div>
           </div>
         </div>

@@ -590,133 +590,11 @@ export default function App() {
             />
           </div>
         ) : (
-          <div className="flex-1 flex flex-col">
-            {/* Active File Action Sub-bar REMOVED to eliminate duplicate file info */}
-
-            {/* MOBILE VIEW (screens below lg): Sticky Preview on Top, Controls Scrolling Below */}
-            <div className="lg:hidden flex flex-col w-full pb-20">
-              {/* Sticky Top Live Preview (Always visible while scrolling options) */}
-              <div className="sticky top-14 z-20 bg-slate-100/95 dark:bg-slate-950/95 backdrop-blur-md px-2 pt-1 pb-2 border-b border-slate-200 dark:border-slate-800 shadow-xs">
-                <div className="flex items-center justify-between px-2 pb-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                  <span className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-bold">
-                    <FontAwesomeIcon icon={faEye} />
-                    <span>{t.livePreviewSticky}</span>
-                  </span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                    {lang === 'bn' ? 'নিচে অপশন পরিবর্তন করুন' : 'Tweak options below'}
-                  </span>
-                </div>
-                <div className="max-h-[38vh] overflow-y-auto flex justify-center rounded-2xl bg-slate-200/40 dark:bg-slate-900/40 p-1">
-                  <PDFCanvasViewer
-                    pdfDocProxy={pdfDocProxy}
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                    numberConfig={numberConfig}
-                    onUpdateNumberConfig={setNumberConfig}
-                    stamps={stamps}
-                    selectedStampId={selectedStampId}
-                    onSelectStamp={setSelectedStampId}
-                    onUpdateStamp={handleUpdateStamp}
-                    onDeleteStamp={handleDeleteStamp}
-                    lang={lang}
-                  />
-                </div>
-              </div>
-
-              {/* Scrolling Options Underneath the Sticky Canvas */}
-              <div className="p-3 sm:p-4 space-y-4">
-                {/* Tabs Header */}
-                <div className="flex items-center p-1 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('numbers')}
-                    className={`flex-1 py-2 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      activeTab === 'numbers'
-                        ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    <FontAwesomeIcon icon={faHashtag} className="text-[11px]" />
-                    <span>{t.tabNumbers}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('stamps')}
-                    className={`flex-1 py-2 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      activeTab === 'stamps'
-                        ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    <FontAwesomeIcon icon={faImage} className="text-[11px]" />
-                    <span>{t.tabStamps}</span>
-                    {stamps.length > 0 && (
-                      <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[9px] flex items-center justify-center font-bold">
-                        {stamps.length}
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('pages')}
-                    className={`flex-1 py-2 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      activeTab === 'pages'
-                        ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    <FontAwesomeIcon icon={faListCheck} className="text-[11px]" />
-                    <span>{t.tabPages}</span>
-                  </button>
-                </div>
-
-                {/* Tab Contents with Real-time Live Review */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-xs">
-                  {activeTab === 'numbers' && (
-                    <PageNumberManager
-                      config={numberConfig}
-                      onChange={setNumberConfig}
-                      totalPages={totalPages}
-                      lang={lang}
-                    />
-                  )}
-
-                  {activeTab === 'stamps' && (
-                    <StampManager
-                      stamps={stamps}
-                      selectedStampId={selectedStampId}
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onAddStamp={handleAddStamp}
-                      onUpdateStamp={handleUpdateStamp}
-                      onDeleteStamp={handleDeleteStamp}
-                      onSelectStamp={setSelectedStampId}
-                      lang={lang}
-                    />
-                  )}
-
-                  {activeTab === 'pages' && (
-                    <PageThumbnails
-                      totalPages={totalPages}
-                      currentPage={currentPage}
-                      onPageSelect={setCurrentPage}
-                      numberConfig={numberConfig}
-                      onToggleNumberExclusion={togglePageExclusion}
-                      stamps={stamps}
-                      lang={lang}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* DESKTOP VIEW (screens lg and up): Side by side */}
-            <div className="hidden lg:grid flex-1 max-w-7xl w-full mx-auto p-6 grid-cols-12 gap-6 items-start">
-              {/* Canvas on Left */}
-              <div className="col-span-7 xl:col-span-8 flex flex-col items-center w-full">
+          <div className="flex-1 flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden">
+            {/* Unified Workspace: Canvas Frozen, Tool Tabs Frozen, Only Options Scroll Below */}
+            <div className="flex-1 flex flex-col w-full max-w-5xl xl:max-w-6xl mx-auto px-3 sm:px-6 pt-2 pb-16 sm:pb-3 min-h-0 overflow-hidden">
+              {/* 1. FROZEN UPPER SECTION: Full-width PDF Canvas Viewer */}
+              <div className="w-full shrink-0 flex flex-col items-center mb-2.5">
                 <PDFCanvasViewer
                   pdfDocProxy={pdfDocProxy}
                   currentPage={currentPage}
@@ -733,36 +611,35 @@ export default function App() {
                 />
               </div>
 
-              {/* Sidebar Controls on Right */}
-              <div className="col-span-5 xl:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xs sticky top-24 w-full">
-                {/* Tabs Header */}
-                <div className="flex items-center p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 mb-5 border border-slate-200/60 dark:border-slate-700/60">
+              {/* 2. FROZEN MIDDLE SECTION: Tool Radio Buttons / Tabs */}
+              <div className="w-full shrink-0 mb-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-1.5 shadow-2xs">
+                <div className="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60">
                   <button
                     type="button"
                     onClick={() => setActiveTab('numbers')}
-                    className={`flex-1 py-2 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    className={`flex-1 py-2 sm:py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                       activeTab === 'numbers'
-                        ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                        ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 shadow-2xs'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                     }`}
                   >
-                    <FontAwesomeIcon icon={faHashtag} className="text-[11px]" />
+                    <FontAwesomeIcon icon={faHashtag} className="text-xs" />
                     <span>{t.tabNumbers}</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setActiveTab('stamps')}
-                    className={`flex-1 py-2 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    className={`flex-1 py-2 sm:py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                       activeTab === 'stamps'
-                        ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                        ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 shadow-2xs'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                     }`}
                   >
-                    <FontAwesomeIcon icon={faImage} className="text-[11px]" />
+                    <FontAwesomeIcon icon={faImage} className="text-xs" />
                     <span>{t.tabStamps}</span>
                     {stamps.length > 0 && (
-                      <span className="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 text-[9px] flex items-center justify-center font-bold">
+                      <span className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 text-[10px] flex items-center justify-center font-bold">
                         {stamps.length}
                       </span>
                     )}
@@ -771,54 +648,61 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setActiveTab('pages')}
-                    className={`flex-1 py-2 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    className={`flex-1 py-2 sm:py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                       activeTab === 'pages'
-                        ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                        ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 shadow-2xs'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                     }`}
                   >
-                    <FontAwesomeIcon icon={faListCheck} className="text-[11px]" />
-                    <span>{t.tabPages}</span>
+                    <FontAwesomeIcon icon={faListCheck} className="text-xs" />
+                    <span>{lang === 'bn' ? 'পৃষ্ঠা তালিকা ও বর্জন' : 'Page List & Exclusions'}</span>
                   </button>
                 </div>
+              </div>
 
-                {/* Tab Contents */}
-                <div>
-                  {activeTab === 'numbers' && (
-                    <PageNumberManager
-                      config={numberConfig}
-                      onChange={setNumberConfig}
-                      totalPages={totalPages}
-                      lang={lang}
-                    />
-                  )}
+              {/* 3. SCROLLING LOWER SECTION: ONLY tool options scroll */}
+              <div className="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xs">
+                {activeTab === 'numbers' && (
+                  <PageNumberManager
+                    config={numberConfig}
+                    onChange={setNumberConfig}
+                    totalPages={totalPages}
+                    lang={lang}
+                  />
+                )}
 
-                  {activeTab === 'stamps' && (
-                    <StampManager
-                      stamps={stamps}
-                      selectedStampId={selectedStampId}
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onAddStamp={handleAddStamp}
-                      onUpdateStamp={handleUpdateStamp}
-                      onDeleteStamp={handleDeleteStamp}
-                      onSelectStamp={setSelectedStampId}
-                      lang={lang}
-                    />
-                  )}
+                {activeTab === 'stamps' && (
+                  <StampManager
+                    stamps={stamps}
+                    selectedStampId={selectedStampId}
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onAddStamp={handleAddStamp}
+                    onUpdateStamp={handleUpdateStamp}
+                    onDeleteStamp={handleDeleteStamp}
+                    onSelectStamp={setSelectedStampId}
+                    lang={lang}
+                  />
+                )}
 
-                  {activeTab === 'pages' && (
-                    <PageThumbnails
-                      totalPages={totalPages}
-                      currentPage={currentPage}
-                      onPageSelect={setCurrentPage}
-                      numberConfig={numberConfig}
-                      onToggleNumberExclusion={togglePageExclusion}
-                      stamps={stamps}
-                      lang={lang}
-                    />
-                  )}
-                </div>
+                {activeTab === 'pages' && (
+                  <PageThumbnails
+                    totalPages={totalPages}
+                    currentPage={currentPage}
+                    onPageSelect={setCurrentPage}
+                    numberConfig={numberConfig}
+                    onToggleNumberExclusion={togglePageExclusion}
+                    onBatchExclusionChange={(newExcluded) =>
+                      setNumberConfig({ ...numberConfig, excludedPages: newExcluded })
+                    }
+                    onToggleSkipFirstPage={(skip) =>
+                      setNumberConfig({ ...numberConfig, skipFirstPage: skip })
+                    }
+                    stamps={stamps}
+                    lang={lang}
+                    pdfDocProxy={pdfDocProxy}
+                  />
+                )}
               </div>
             </div>
           </div>

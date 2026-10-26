@@ -55,25 +55,16 @@ export const PDFCanvasViewer: React.FC<PDFCanvasViewerProps> = ({
   const t = translations[lang];
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [zoom, setZoom] = useState<number>(1.0);
+  const [zoom, setZoom] = useState<number>(0.35);
   const [renderSize, setRenderSize] = useState<{ width: number; height: number }>({
     width: 600,
     height: 840,
   });
   const [isRendering, setIsRendering] = useState<boolean>(false);
 
-  // Auto-fit zoom on initial mount for mobile screens
+  // Initial mount zoom: locked to 35% as requested ("পিডিএফ ক্যানভাসে পৃষ্ঠা ৩৫% এ রেখে")
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const screenWidth = window.innerWidth;
-      if (screenWidth < 640) {
-        // Fits A4 page (595pt width) neatly inside phone screen with padding
-        const optimalZoom = Math.min(1.0, Math.max(0.48, (screenWidth - 48) / 595));
-        setZoom(optimalZoom);
-      } else {
-        setZoom(1.15);
-      }
-    }
+    setZoom(0.35);
   }, []);
 
   const handleFitWidth = () => {
@@ -178,7 +169,7 @@ export const PDFCanvasViewer: React.FC<PDFCanvasViewerProps> = ({
     };
   }, [pdfDocProxy, currentPage, zoom]);
 
-  // Handle stamp mouse drag
+  // Handle stamp mouse drag: automatically brings stamp on top of page number
   const handleStampMouseDown = (
     e: React.MouseEvent,
     stamp: StampItem
@@ -186,6 +177,9 @@ export const PDFCanvasViewer: React.FC<PDFCanvasViewerProps> = ({
     e.stopPropagation();
     onSelectStamp(stamp.id);
     setDraggingStampId(stamp.id);
+    if (numberConfig.layer !== 'below_stamps') {
+      onUpdateNumberConfig({ ...numberConfig, layer: 'below_stamps' });
+    }
 
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
@@ -198,7 +192,7 @@ export const PDFCanvasViewer: React.FC<PDFCanvasViewerProps> = ({
     }
   };
 
-  // Handle stamp touch drag on mobile
+  // Handle stamp touch drag on mobile: automatically brings stamp on top of page number
   const handleStampTouchStart = (
     e: React.TouchEvent,
     stamp: StampItem
@@ -206,6 +200,9 @@ export const PDFCanvasViewer: React.FC<PDFCanvasViewerProps> = ({
     e.stopPropagation();
     onSelectStamp(stamp.id);
     setDraggingStampId(stamp.id);
+    if (numberConfig.layer !== 'below_stamps') {
+      onUpdateNumberConfig({ ...numberConfig, layer: 'below_stamps' });
+    }
 
     if (containerRef.current && e.touches.length > 0) {
       const touch = e.touches[0];
@@ -237,10 +234,14 @@ export const PDFCanvasViewer: React.FC<PDFCanvasViewerProps> = ({
     setResizingStampId(stamp.id);
   };
 
-  // Dragging page number overlay directly
+  // Dragging page number overlay: automatically brings page number on top of stamp/photo
   const handleNumberMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
     setDraggingNumber(true);
+    if (numberConfig.layer !== 'above_stamps') {
+      onUpdateNumberConfig({ ...numberConfig, layer: 'above_stamps' });
+    }
+
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       const currentX = numberConfig.position === 'custom' ? numberConfig.customXPercent : 50;
@@ -257,6 +258,10 @@ export const PDFCanvasViewer: React.FC<PDFCanvasViewerProps> = ({
   const handleNumberTouchStart = (e: React.TouchEvent) => {
     e.stopPropagation();
     setDraggingNumber(true);
+    if (numberConfig.layer !== 'above_stamps') {
+      onUpdateNumberConfig({ ...numberConfig, layer: 'above_stamps' });
+    }
+
     if (containerRef.current && e.touches.length > 0) {
       const touch = e.touches[0];
       const rect = containerRef.current.getBoundingClientRect();
@@ -541,41 +546,40 @@ export const PDFCanvasViewer: React.FC<PDFCanvasViewerProps> = ({
       onTouchCancel={handleTouchEnd}
     >
       {/* Top Controls Toolbar */}
-      <div className="w-full max-w-4xl mb-3 flex flex-col sm:flex-row items-center justify-between gap-2.5 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
-        {/* Top or Left row: Page navigation & Exclusion button */}
-        <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2">
-          {/* Page Nav */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-              disabled={currentPage <= 1}
-              aria-label="Previous Page"
-              className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer transition-colors"
-            >
-              <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
-            </button>
+      <div className="w-full max-w-4xl mb-2 flex items-center justify-between px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+        {/* Left: Page nav (17/30 format) */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+            disabled={currentPage <= 1}
+            aria-label="Previous Page"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer transition-colors"
+          >
+            <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
+          </button>
 
-            <span className="text-xs font-medium px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300 whitespace-nowrap">
-              {t.pageOf
-                .replace('{current}', formatNumeral(currentPage, numberConfig.numeralSystem))
-                .replace('{total}', formatNumeral(totalPages, numberConfig.numeralSystem))}
-            </span>
+          {/* ১৭/৩০ format exactly as requested: "পৃষ্ঠা ১৭ এর ৩০ এর জায়গায় ১৭/৩০" */}
+          <span className="text-xs font-bold px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300 font-mono whitespace-nowrap">
+            {`${formatNumeral(currentPage, numberConfig.numeralSystem)}/${formatNumeral(totalPages, numberConfig.numeralSystem)}`}
+          </span>
 
-            <button
-              onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage >= totalPages}
-              aria-label="Next Page"
-              className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer transition-colors"
-            >
-              <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
-            </button>
-          </div>
+          <button
+            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage >= totalPages}
+            aria-label="Next Page"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer transition-colors"
+          >
+            <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+          </button>
+        </div>
 
+        {/* Right: Quick Exclude Page & Magnet (Icon-only) */}
+        <div className="flex items-center gap-1.5">
           {/* Quick Exclude Current Page Toggle */}
           <button
             onClick={toggleCurrentPageExclusion}
             aria-label="Toggle Page Exclusion"
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-all cursor-pointer border truncate ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-medium transition-all cursor-pointer border truncate ${
               isNumberingExcludedOnCurrent
                 ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700'
                 : 'bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
@@ -587,91 +591,33 @@ export const PDFCanvasViewer: React.FC<PDFCanvasViewerProps> = ({
             />
             <span className="truncate">
               {isNumberingExcludedOnCurrent
-                ? lang === 'bn'
-                  ? 'উপাদান বাদ দেওয়া'
-                  : 'Overlays ignored'
-                : lang === 'bn'
-                ? 'পৃষ্ঠা বাদ দিন'
-                : 'Ignore page'}
+                ? lang === 'bn' ? 'বাদ' : 'Ignored'
+                : lang === 'bn' ? 'সক্রিয়' : 'Active'}
             </span>
           </button>
 
-          {/* Magnetic Grid Toggle Button */}
+          {/* Magnetic Grid Toggle Button - Icon ONLY as requested ("ম্যাগনেট আইকন থাকলে হবে ম্যাগনেট লেখা থাকতে হবে না") */}
           <button
             type="button"
             onClick={() => setMagneticGridEnabled(!magneticGridEnabled)}
             aria-label={t.magneticGrid}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-all cursor-pointer border truncate ${
+            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center text-xs font-medium transition-all cursor-pointer border shrink-0 ${
               magneticGridEnabled
                 ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 shadow-2xs font-semibold'
                 : 'bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
             }`}
-            title={t.magneticGridDesc}
+            title={magneticGridEnabled ? t.magneticGridActive : t.magneticGrid}
           >
             <FontAwesomeIcon
               icon={faMagnet}
-              className={`text-xs shrink-0 ${magneticGridEnabled ? 'text-indigo-600 dark:text-indigo-400' : ''}`}
+              className={`text-xs ${magneticGridEnabled ? 'text-indigo-600 dark:text-indigo-400' : ''}`}
             />
-            <span className="truncate">
-              {magneticGridEnabled ? t.magneticGridActive : t.magneticGrid}
-            </span>
-          </button>
-        </div>
-
-        {/* Zoom & Fit Controls with Percentage Indicator */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700/60 shrink-0">
-          <button
-            type="button"
-            onClick={() => setZoom((z) => Math.max(0.35, Math.round((z - 0.15) * 100) / 100))}
-            disabled={zoom <= 0.35}
-            aria-label="Zoom Out"
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
-            title={t.zoomOut}
-          >
-            <FontAwesomeIcon icon={faMagnifyingGlassMinus} className="text-xs" />
-          </button>
-
-          {/* Interactive Zoom Percentage Indicator (Click to toggle 100% or Fit) */}
-          <button
-            type="button"
-            onClick={() => {
-              if (Math.round(zoom * 100) === 100) {
-                handleFitWidth();
-              } else {
-                setZoom(1.0);
-              }
-            }}
-            className="px-2 py-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-xs font-mono font-bold text-slate-800 dark:text-slate-200 transition-colors cursor-pointer min-w-[50px] text-center"
-            title={lang === 'bn' ? '১০০% জুম রিসেট করতে ক্লিক করুন' : 'Click to reset to 100%'}
-          >
-            {Math.round(zoom * 100)}%
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setZoom((z) => Math.min(3.0, Math.round((z + 0.15) * 100) / 100))}
-            disabled={zoom >= 3.0}
-            aria-label="Zoom In"
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
-            title={t.zoomIn}
-          >
-            <FontAwesomeIcon icon={faMagnifyingGlassPlus} className="text-xs" />
-          </button>
-
-          <button
-            type="button"
-            onClick={handleFitWidth}
-            aria-label={t.fitWidth}
-            className="px-2 py-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 transition-colors cursor-pointer border-l border-slate-200 dark:border-slate-700 pl-2"
-            title={t.fitWidth}
-          >
-            {lang === 'bn' ? 'ফিট' : 'Fit'}
           </button>
         </div>
       </div>
 
-      {/* Main Interactive Canvas Surface */}
-      <div className="relative overflow-auto max-w-full p-2 sm:p-4 flex bg-slate-200/50 dark:bg-slate-950/60 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-inner">
+      {/* Main Interactive Canvas Surface (Frozen in place, internal pan/zoom) */}
+      <div className="relative overflow-auto w-full max-w-4xl h-[300px] sm:h-[350px] p-2 sm:p-4 flex justify-center bg-slate-200/50 dark:bg-slate-950/60 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-inner">
         <div
           ref={containerRef}
           onClick={() => onSelectStamp(null)}
@@ -764,11 +710,13 @@ export const PDFCanvasViewer: React.FC<PDFCanvasViewerProps> = ({
                   fontWeight: 300,
                 }}
                 className={`absolute ${
-                  numberConfig.layer === 'below_stamps' ? 'z-20' : 'z-40'
-                } px-2 py-0.5 rounded cursor-move hover:ring-2 hover:ring-indigo-400/80 transition-all font-light whitespace-nowrap group touch-none select-none ${
-                  draggingNumber ? 'ring-2 ring-indigo-600 bg-indigo-50/80 dark:bg-indigo-950/80 shadow-md' : ''
-                }`}
-                title={lang === 'bn' ? 'ড্র্যাগ করে সরান (ম্যাগনেট গ্রাফ সক্রিয়)' : 'Drag to reposition'}
+                  draggingNumber
+                    ? 'z-50 ring-2 ring-indigo-600 bg-indigo-50/80 dark:bg-indigo-950/80 shadow-md'
+                    : numberConfig.layer === 'below_stamps'
+                    ? 'z-20'
+                    : 'z-40'
+                } px-2 py-0.5 rounded cursor-move hover:ring-2 hover:ring-indigo-400/80 transition-all font-light whitespace-nowrap group touch-none select-none`}
+                title={lang === 'bn' ? 'ড্র্যাগ করে সরান' : 'Drag to reposition'}
               >
                 {currentNumberText}
               </div>
@@ -790,6 +738,12 @@ export const PDFCanvasViewer: React.FC<PDFCanvasViewerProps> = ({
               const isSelected = selectedStampId === stamp.id;
               const stampWidthPx = (stamp.widthPercent / 100) * renderSize.width;
               const stampHeightPx = stampWidthPx / stamp.aspectRatio;
+              const isDraggingThisStamp = draggingStampId === stamp.id;
+              const stampZIndex = isDraggingThisStamp
+                ? 'z-50'
+                : numberConfig.layer === 'below_stamps'
+                ? 'z-40'
+                : 'z-20';
 
               return (
                 <div
@@ -808,9 +762,9 @@ export const PDFCanvasViewer: React.FC<PDFCanvasViewerProps> = ({
                     height: `${stampHeightPx}px`,
                     transform: `translate(-50%, -50%) rotate(${stamp.rotation}deg)`,
                     opacity: stamp.opacity,
-                    cursor: draggingStampId === stamp.id ? 'grabbing' : 'grab',
+                    cursor: isDraggingThisStamp ? 'grabbing' : 'grab',
                   }}
-                  className={`group select-none z-30 transition-shadow touch-none ${
+                  className={`group select-none ${stampZIndex} transition-shadow touch-none ${
                     isSelected
                       ? 'ring-2 ring-indigo-500 shadow-xl'
                       : 'hover:ring-1 hover:ring-indigo-300'
@@ -879,6 +833,47 @@ export const PDFCanvasViewer: React.FC<PDFCanvasViewerProps> = ({
               <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
             </div>
           )}
+        </div>
+
+        {/* Floating Zoom inside canvas only ("মনে চাইলে ক্যানভাসের ভিতরে শুধু পিডিএফ এর পেজটা জুম করব") */}
+        <div className="absolute bottom-3 right-3 z-30 inline-flex items-center gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-2 py-1 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-md">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setZoom((z) => Math.max(0.2, Math.round((z - 0.05) * 100) / 100));
+            }}
+            disabled={zoom <= 0.2}
+            className="w-6 h-6 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-30 cursor-pointer text-xs transition-colors"
+            title={t.zoomOut}
+          >
+            <FontAwesomeIcon icon={faMagnifyingGlassMinus} />
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setZoom(0.35);
+            }}
+            className="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-200 px-1 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
+            title="Reset to 35%"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setZoom((z) => Math.min(2.5, Math.round((z + 0.05) * 100) / 100));
+            }}
+            disabled={zoom >= 2.5}
+            className="w-6 h-6 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-30 cursor-pointer text-xs transition-colors"
+            title={t.zoomIn}
+          >
+            <FontAwesomeIcon icon={faMagnifyingGlassPlus} />
+          </button>
         </div>
       </div>
 

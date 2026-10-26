@@ -36,7 +36,7 @@ export interface PageNumberConfig {
   prefixText?: string; // Text before number (e.g. "নাশিদের ")
   suffixText?: string; // Text after number (e.g. " ডায়েরি")
   pageFilterMode?: PageFilterMode; // 'all' | 'odd' | 'even'
-  rotation?: 0 | 90 | 180 | 270; // Rotation angle (রোটেশন / রুট)
+  rotation?: number; // Rotation angle 0-360 degrees (রোটেশন / রুট)
   layer?: 'above_stamps' | 'below_stamps'; // Layer order (স্ট্যাম্প বা ছবির উপরে যেন রাখা যায়)
 }
 
